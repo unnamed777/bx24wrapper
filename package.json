@@ -18,5 +18,8 @@
   "bugs": {
     "url": "https://github.com/unnamed777/bx24wrapper/issues"
   },
-  "homepage": "https://github.com/unnamed777/bx24wrapper#readme"
+  "homepage": "https://github.com/unnamed777/bx24wrapper#readme",
+  "dependencies": {
+    "get-exposed-promise": "git@github.com:unnamed777/get-exposed-promise.git"
+  }
 }

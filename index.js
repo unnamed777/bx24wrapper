@@ -1,4 +1,4 @@
-import getExposedPromise from './getExposedPromise';
+import getExposedPromise from 'get-exposed-promise';
 
 export default {
     /**
