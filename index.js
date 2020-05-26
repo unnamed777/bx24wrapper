@@ -27,7 +27,6 @@ export default {
                         throw new Error('BX24 Error: ' + error.error_description);
                         //reject(result);
                     } else {
-                        resolve(result.data());
                         resolve({
                             entries: result.data(),
                             total: result.total(),
