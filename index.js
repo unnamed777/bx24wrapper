@@ -1,4 +1,5 @@
 import getExposedPromise from 'get-exposed-promise';
+import Collection from "b24-sdk/Collection";
 
 export default {
     /**
@@ -113,7 +114,7 @@ export default {
 
     /**
      * @param {string} method
-     * @param {Object} data
+     * @param {Object|Array|string} data
      * @param {BX24WrapperFetchAllOptions} options
      * @returns {Promise<*[]|{entries: *[], total: number}>}
      *
@@ -188,6 +189,66 @@ export default {
         return returnResult;
     },
 
+    /**
+     * Method disables using page navigation via api and obtains
+     * all of items ordered by primary key.
+     * Make sense to use this method for queries with large amount of entries.
+     * 
+     * @param {string} method
+     * @param {Object|Array|string} data
+     * @param {BX24WrapperFastFetchAllOptions} options
+     * @returns {Promise<*[]|{entries: *[], total: number}>}
+     * 
+     * @typedef {Object} BX24WrapperFastFetchAllOptions
+     * @property {boolean} total If true, method will return {entries, total} object
+     * @property {primaryKey} Primary key of entity to order and filter items
+     * @property {filterKey} Key in `data` which contains filter
+     */
+    fastFetchAll: async function (method, data = {}, options = {}) {
+        let primaryKey = options.primaryKey || 'ID';
+        // If no key, try to guess it
+        let filterKey = options.filterKey || (data.FILTER ? 'FILTER' : 'filter');
+        
+        let isMore = true;
+        let lastId = 0;
+        let entries = [];
+        let modifiedOptions = {...options};
+        delete modifiedOptions.total;
+
+        do {
+            let modifiedData = {
+                ...data,
+                [filterKey]: {
+                    ...data[filterKey],
+                    ['>' + primaryKey]: lastId,
+                },
+                start: -1,
+            };
+            
+            let result = await this.fetch(method, modifiedData, modifiedOptions);
+            entries = entries.concat(result);
+
+            if (result.length < 50) {
+                break;
+            } else {
+                lastId = entries[entries.length - 1][primaryKey];
+            }
+        } while (true);
+
+        let returnResult;
+        
+        if (options.total) {
+            returnResult = {
+                total: entries.length,
+                entries: entries,
+            };
+        } else {
+            returnResult = entries;
+        }
+        
+        return returnResult;
+    },
+
     batch: function (calls) {
         const {promise, resolve, reject} = getExposedPromise();
 
@@ -257,21 +318,4 @@ export default {
 
         return promise;
     },
-
-    printEntityFields: function (data) {
-        let result = [];
-        console.log(data);
-
-        for (let [code, fields] of Object.entries(data)) {
-            result.push({
-                title: fields.title || fields.formLabel,
-                code,
-                type: fields.type,
-                isRequired: fields.isRequired,
-                isMultiple: fields.isMultiple,
-            });
-        }
-
-        console.table(result);
-    }
 };
