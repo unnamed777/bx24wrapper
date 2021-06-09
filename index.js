@@ -20,12 +20,12 @@ export default {
 
                 BX24.callMethod(method, data, (result) => {
                     if (result.error()) {
-                        console.error(result.error());
+                        console.error('error', result.error());
                         console.log(result);
 
                         let error = result.error();
-                        alert(error.error_description + `(${error.error})`);
-                        throw new Error('BX24 Error: ' + error.error_description);
+                        alert(error.ex.error_description + `(${error.ex.error})`);
+                        throw new Error('BX24 Error: ' + error.ex.error_description);
                         //reject(result);
                     } else {
                         resolve({
@@ -152,7 +152,7 @@ export default {
                     }
                 ]);
             }
-
+            
             const batchCallsChunksCount = Math.ceil(batchCalls.length / batchLimit);
 
             for (let i = 0; i < batchCallsChunksCount; i++) {
@@ -208,6 +208,7 @@ export default {
         let primaryKey = options.primaryKey || 'ID';
         // If no key, try to guess it
         let filterKey = options.filterKey || (data.FILTER ? 'FILTER' : 'filter');
+        let limit = options.limit || null;
         
         let isMore = true;
         let lastId = 0;
@@ -227,6 +228,11 @@ export default {
             
             let result = await this.fetch(method, modifiedData, modifiedOptions);
             entries = entries.concat(result);
+            
+            if (limit !== null && entries.length >= limit) {
+                entries = entries.slice(0, limit);
+                break;
+            }
 
             if (result.length < 50) {
                 break;
