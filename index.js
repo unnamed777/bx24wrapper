@@ -28,8 +28,17 @@ export default {
                         throw new Error('BX24 Error: ' + error.ex.error_description);
                         //reject(result);
                     } else {
+                        let resultItems;
+                        
+                        if (options.getter) {
+                            // Some methods return items in subkey like "orders" or "productItems"
+                            resultItems = options.getter(result.data());
+                        } else {
+                            resultItems = result.data();
+                        }
+                        
                         resolve({
-                            entries: result.data(),
+                            entries: resultItems,
                             total: result.total(),
                         });
                     }
@@ -59,60 +68,6 @@ export default {
     },
 
     /**
-     * @deprecated
-     * @param method
-     * @param data
-     * @param options
-     * @returns {Promise<*>}
-     */
-    oldFetchAll: async function (method, data = {}, options = {}) {
-        let limit = options.limit || null;
-        let result;
-
-        try {
-            result = await (() => {
-                const {promise, resolve, reject} = getExposedPromise();
-                let items = [];
-
-                BX24.callMethod(method, data, (result) => {
-                    if (result.error()) {
-                        reject(result);
-                    } else {
-                        items = items.concat(result.data());
-
-                        if (result.more() && (limit === null || limit > items.length)) {
-                            result.next();
-                        } else {
-                            resolve({
-                                entries: limit ? items.slice(0, limit) : items,
-                                total: result.total(),
-                            });
-                        }
-                    }
-                });
-
-                return promise;
-            })();
-
-        } catch (ex) {
-            let error = result.error();
-            console.error(error);
-            alert(error.error_description + `(${error.error})`);
-            throw new Error('BX24 Error: ' + error.error_description);
-        }
-
-        let returnResult;
-
-        if (options.total) {
-            returnResult = result;
-        } else {
-            returnResult = result.entries;
-        }
-
-        return returnResult;
-    },
-
-    /**
      * @param {string} method
      * @param {Object|Array|string} data
      * @param {BX24WrapperFetchAllOptions} options
@@ -127,7 +82,16 @@ export default {
         let limit = options.limit || null;
 
         const firstResponse = await this.callRaw(method, data);
-        let entries = firstResponse.data();
+        let entries;
+
+        if (options.getter) {
+            // Some methods return items in subkey like "orders" or "productItems"
+            entries = options.getter(firstResponse.data());
+        } else {
+            entries = firstResponse.data();
+        }
+        
+        
         const totalEntries = firstResponse.total();
 
         if (firstResponse.more()) {
@@ -165,7 +129,16 @@ export default {
                         throw new Error('Error on batch fetch. ' + result.error());
                     }
 
-                    entries = entries.concat(result.data());
+                    let resultItems;
+
+                    if (options.getter) {
+                        // Some methods return items in subkey like "orders" or "productItems"
+                        resultItems = options.getter(result.data());
+                    } else {
+                        resultItems = result.data();
+                    }
+                    
+                    entries = entries.concat(resultItems);
                 }
 
                 if (limit !== null && entries.length >= limit) {
